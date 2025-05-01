@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: books_db
+      POSTGRES_USER: books_user
+      POSTGRES_PASSWORD: books_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD","pg_isready","-U","books_user"]
+      interval: 10s
+      retries: 5
+
+  api:
+    image: tt4-final-exam-2160_api
+    build:
+      context: ./backend
+    restart: always
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=books_db;Username=books_user;Password=books_pass"
+      ASPNETCORE_ENVIRONMENT: Development
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+
+  web:
+    image: tt4-final-exam-2160_web
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "4200:80"
+
+volumes:
+  pgdata:
